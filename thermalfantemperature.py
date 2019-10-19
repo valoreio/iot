@@ -2,35 +2,32 @@
 # -*- coding: utf- -*-
 #  Style coded according to pycodestyle
 
+
 import sys
+from security_connections_data2 import sqlite3_host2
 import sqlite3
 
 
 def createdb():
     try:
-        conn = sqlite3.connect('thermalfantemperature.db')
+        conn = sqlite3.connect(sqlite3_host2)
         cursor = conn.cursor()
 
-        cursor.execute("""
-        CREATE TABLE cputemperature (
+        cursor.execute("""CREATE TABLE if not EXISTS cputemperature (
             id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-            cputemperaturevalue INTEGER
-        );
-        """)
+            cputemperaturevalue INTEGER);""")
 
     except Exception as e1:
-        print("Erro1 : {0}".format(e1))
-        #  sys.exit(1)
+        raise Exception("Erro1 : {0}".format(e1))
 
     finally:
         if conn:
             conn.close()
-            #  sys.exit(0)
 
 
 def list_all_records():
     try:
-        conn = sqlite3.connect('thermalfantemperature.db')
+        conn = sqlite3.connect(sqlite3_host2)
         cursor = conn.cursor()
         cursor.execute("""select * from cputemperature""")
 
@@ -38,81 +35,56 @@ def list_all_records():
             print(linha)
 
     except Exception as e2:
-        print("Erro2 : ".format(e2))
-        #  sys.exit(1)
+        raise Exception("Erro2 : ".format(e2))
 
     finally:
         if conn:
             conn.close()
-            #  sys.exit(0)
 
 
 def insertdb():
     try:
-        conn = sqlite3.connect('thermalfantemperature.db')
+        conn = sqlite3.connect(sqlite3_host2)
         cursor = conn.cursor()
 
         try:
-            cursor.execute("""
-            INSERT INTO cputemperature (cputemperaturevalue)
-            VALUES (32)
-            """)
+            cursor.execute("""INSERT INTO cputemperature (cputemperaturevalue)
+                VALUES (32)""")
 
             conn.commit()
-            #  sys.exit(0)
 
         except Exception as e3:
-            print("Erro3 : {0}".format(e3))
-            #  sys.exit(1)
-
-        finally:
-            if conn:
-                conn.close()
-                #  sys.exit(0)
+            raise Exception("Erro3 : {0}".format(e3))
 
     except Exception as e4:
-        print("Erro4 : {0}".format(e4))
-        #  sys.exit(1)
+        raise Exception("Erro4 : {0}".format(e4))
 
     finally:
         if conn:
             conn.close()
-            #  sys.exit(0)
 
 
 def alter_thermal_value(vcpu):
     try:
-        conn = sqlite3.connect('thermalfantemperature.db')
+        conn = sqlite3.connect(sqlite3_host2)
         cursor = conn.cursor()
 
         try:
-
-            cursor.execute("""
-            UPDATE cputemperature
-            SET cputemperaturevalue = ?
-            where ID = 1
-            """, (vcpu,))
+            cursor.execute("""UPDATE cputemperature
+                SET cputemperaturevalue = ?
+                where ID = 1""", (vcpu,))
 
             conn.commit()
-            #  sys.exit(0)
 
         except Exception as e5:
-            print("Erro5 : {0}".format(e5))
-            #  sys.exit(1)
-
-        finally:
-            if conn:
-                conn.close()
-                #  sys.exit(0)
+            raise Exception("Erro5 : {0}".format(e5))
 
     except Exception as e6:
-        print("Erro6 : {0}".format(e6))
-        #  sys.exit(1)
+        raise Exception("Erro6 : {0}".format(e6))
 
     finally:
         if conn:
             conn.close()
-            #  sys.exit(0)
 
 
 if __name__ == '__main__':
@@ -120,7 +92,6 @@ if __name__ == '__main__':
     while True:
 
         try:
-
             print('\r\n****************************************************')
             print('                    M E N U                         ')
             print('1-Create a NEW SQLite DB named thermalfantemperature')
@@ -147,7 +118,6 @@ if __name__ == '__main__':
                 vcpu = None
                 while not vcpu:
                     try:
-
                         vcpu = int(input("Qual o novo valor?"))
 
                         alter_thermal_value(vcpu)

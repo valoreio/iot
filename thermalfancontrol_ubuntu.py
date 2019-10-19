@@ -7,15 +7,15 @@ __author__ = "Marcos Aurelio Barranco"
 __copyright__ = "Copyright 2016, The MIT License (MIT)"
 __credits__ = ["Marcos Aurelio Barranco", ]
 __license__ = "MIT"
-__version__ = "1"
+__version__ = "3"
 __maintainer__ = "Marcos Aurelio Barranco"
 __email__ = ""
 __status__ = "Production"
 
 
 '''
-Code to control electric fan according to
-internal and external temperatures.
+Code to control electric fan of Raspberry Pi
+according to internal and external temperatures.
 
 -DHT22 sensor is reading external temperatura
 -Internal temperature is reading cpu temperature
@@ -42,7 +42,6 @@ internal and external temperatures.
 # THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 '''
 
-from pid import PidFile
 import os
 if os.geteuid() != 0:
     print("You need to have root privileges to run this script.")
@@ -54,7 +53,9 @@ pid is to prevent two codes running
 at same time at same name space
 check-to-see-if-python-script-is-running
 '''
+
 try:
+    from pid import PidFile
     with PidFile():
         import subprocess
         import sys
@@ -96,7 +97,7 @@ try:
 
         killer = GracefulKiller()
 
-        filepath = '/home/ubuntu/'
+        filepath = '/home/ubuntu/projs/iot/'
         filenameonly = 'thermalfancontrol.log'
         filenamefull = filepath + filenameonly
 
@@ -146,7 +147,7 @@ try:
 
         def measure_tempSQLite():
             try:
-                conn = sqlite3.connect(**sqlite3_host2)
+                conn = sqlite3.connect(sqlite3_host2)
                 cursor = conn.cursor()
                 cursor.execute("""select cputemperaturevalue
                     from cputemperature
@@ -189,29 +190,32 @@ try:
         try:
             temp_sqlite = measure_tempSQLite()
 
-        except Exception as x:
+        except Exception as e:
             temp_sqlite = 34
             logging.debug(
-                "Unexpected Exception while reading SQLite temp : %s", x)
+                "Unexpected Exception while reading SQLite temp : %s", e)
+            logging.info("Temp sqlite was settled to 34")
 
         # Lê temperatura e humidade do sensor DHT22
         try:
             humidity, temperature = dht.read_retry(sensor, DHT22pin)
 
-        except Exception as x:
+        except Exception as e:
             humidity, temperature = 40, 40
             logging.debug(
-                "Unexpected Exception while reading DHT22 sensor : %s", x)
+                "Unexpected Exception while reading DHT22 sensor : %s", e)
+            logging.info("humidity and temperature was settled to 40")
 
         # Lê temperatura inicial e interna da CPU
         # do Raspberry via comando Linux
         try:
             temp = measure_tempCPU()
 
-        except Exception as x:
+        except Exception as e:
             temp = 34
             logging.debug(
-                "Unexpected Exception while reading CPU temp : %s", x)
+                "Unexpected Exception while reading CPU temp : %s", e)
+            logging.info("CPU temp was settled to 34")
 
         temp_control = temp + 5
 
@@ -236,14 +240,14 @@ try:
                     GPIO.cleanup()
                     sys.exit(0)
 
-            except Exception as x:
-                logging.debug("Unexpected while killing : %s", x)
+            except Exception as e:
+                logging.debug("Unexpected while killing : %s", e)
 
             try:
                 temp = measure_tempCPU()
                 logging.debug("Temp read NOW from the RPi board : %s", temp)
 
-            except Exception as x:
+            except Exception as e:
                 temp = 34
                 logging.info("Unexpected while reading CPU temp")
 
@@ -296,18 +300,18 @@ try:
                         humidity, temperature = dht.read_retry(
                             sensor, DHT22pin)
 
-                    except Exception as x:
+                    except Exception as e:
                         humidity, temperature = 40, 40
                         logging.debug(
-                            "Unexpected Exception DHT22 sensor : %s", x)
+                            "Unexpected Exception DHT22 sensor : %s", e)
 
                     try:
                         temp_sqlite = measure_tempSQLite()
 
-                    except Exception as x:
+                    except Exception as e:
                         temp_sqlite = 32
                         logging.debug(
-                            "Unexpected Exception SQLite3 temp : %s", x)
+                            "Unexpected Exception SQLite3 temp : %s", e)
 
             if temperature > 35:
                 for i in range(80):
