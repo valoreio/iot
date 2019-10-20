@@ -83,16 +83,18 @@ try:
         filenameonly = 'thermalfancontrol.log'
         filenamefull = filepath + filenameonly
 
-        """file rotate by Linux logrotate command
-           https://www.digitalocean.com/community/
-           tutorials/how-to-manage-
-           logfiles-with-logrotate-on-ubuntu-16-04"""
+        """
+        file rotate by Linux logrotate command
+        https://www.digitalocean.com/community/
+        tutorials/how-to-manage-
+        logfiles-with-logrotate-on-ubuntu-16-04
+        """
 
         logging.basicConfig(filename=filenamefull,
-                            level=logging.DEBUG,
-                            format='%(asctime)s %(levelname)s %(message)s',
-                            datefmt='[%d/%m/%Y-%H:%M:%S]',
-                            filemode='a')
+            level=logging.DEBUG,
+            format='%(asctime)s %(levelname)s %(message)s',
+            datefmt='[%d/%m/%Y-%H:%M:%S]',
+            filemode='a')
 
         def measure_tempCPU():
 
@@ -139,25 +141,64 @@ try:
                     return i
 
             except Exception as e:
-                logging.info("run thermalfantemperature.py to fix it")
-                logging.debug("ErrSQLite: {0}".format(e))
-                sys.exit(1)
+                try:
+                    conn = sqlite3.connect(sqlite3_host2)
+                    cursor = conn.cursor()
+
+                    cursor.execute("""CREATE TABLE if not EXISTS cputemperature (
+                        id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                        cputemperaturevalue INTEGER);""")
+
+                    logging.info("table cputemperature was created")
+
+                except Exception as e1:
+                    raise Exception("ErrCreateTable-1 : {0}".format(e1))
+
+                finally:
+                    if conn:
+                        conn.close()
+
+                try:
+                    conn = sqlite3.connect(sqlite3_host2)
+                    cursor = conn.cursor()
+
+                    try:
+                        cursor.execute("""INSERT INTO cputemperature
+                            (cputemperaturevalue) VALUES (32)""")
+
+                        conn.commit()
+
+                        logging.info("record was inserted in table cputemperature with value 32C")
+
+                    except Exception as e3:
+                        raise Exception("ErrIns-1 : {0}".format(e3))
+
+                except Exception as e4:
+                    raise Exception("ErrIns-2 : {0}".format(e4))
 
             finally:
                 if conn:
                     conn.close()
 
-        """GPIO 26 ou pino 37 fisico,
-           ou penultimo pino da linha 3,3V"""
+                return 32
+
+        """
+        GPIO 26 ou pino 37 fisico,
+        ou penultimo pino da linha 3,3V
+        """
         LEDpin = 26
 
-        """GPIO 22 ou pino 15 fisico,
-           ou 8o. pino da linha 3,3V"""
+        """
+        GPIO 22 ou pino 15 fisico,
+        ou 8o. pino da linha 3,3V
+        """
         DHT22pin = 22
         sensor = dht.DHT22
 
-        """ GPIO 18 ou pino 12 fisico,
-            ou 6o. pino da linha 5V"""
+        """
+        GPIO 18 ou pino 12 fisico,
+        ou 6o. pino da linha 5V
+        """
         FANpin = 18
         GPIO.setwarnings(False)
         GPIO.setmode(GPIO.BCM)
@@ -301,6 +342,8 @@ try:
                     "Unexpected Exception SQLite3 temp : %s", e)
 
             # O sensor pode 'bugar' e retornar None
+            # quando diversas consultas são feitas
+            # com intervalo de poucos segundos
             if temperature is None:
                 temperature = 40
 
