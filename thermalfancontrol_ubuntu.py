@@ -300,6 +300,9 @@ try:
                 logging.debug(
                     "Unexpected Exception SQLite3 temp : %s", e)
 
+            # O sensor pode 'bugar' e retornar None
+            if temperature is None:
+                temperature = 40
 
             if temperature > 35:
                 for i in range(80):
