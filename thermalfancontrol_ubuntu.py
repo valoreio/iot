@@ -226,13 +226,6 @@ try:
             except Exception as e:
                 logging.debug("Unexpected while killing : %s", e)
 
-            try:
-                temp = measure_tempCPU()
-                logging.debug("Temp read NOW from the RPi board : %s", temp)
-
-            except Exception as e:
-                temp = 34
-                logging.info("Unexpected while reading CPU temp")
 
             if temp > temp_control or temp > temp_sqlite:
                 if not GPIO.input(FANpin):
@@ -250,9 +243,9 @@ try:
                     logging.debug(
                         "temp_sqlite - Temp SQLite  C : %s", temp_sqlite)
 
-                    #  Liga a fan
+                    # Liga a fan
                     GPIO.output(FANpin, True)
-                    #  Desliga o LED
+                    # Desliga o LED
                     GPIO.output(LEDpin, False)
                     logging.debug("turning ON GPIO: %s", FANpin)
 
@@ -273,28 +266,40 @@ try:
                     logging.debug(
                         "temp_sqlite - Temp SQLite  C : %s", temp_sqlite)
 
-                    #  Desliga a fan
+                    # Desliga a fan
                     GPIO.output(FANpin, False)
-                    #  Liga o LED
+                    # Liga o LED
                     GPIO.output(LEDpin, True)
                     logging.debug("turning OFF GPIO: %s", FANpin)
 
-                    try:
-                        humidity, temperature = dht.read_retry(
-                            sensor, DHT22pin)
+            try:
+                temp = measure_tempCPU()
+                logging.debug("Temp read NOW from the RPi board : %s", temp)
 
-                    except Exception as e:
-                        humidity, temperature = 40, 40
-                        logging.debug(
-                            "Unexpected Exception DHT22 sensor : %s", e)
+            except Exception as e:
+                temp = 34
+                logging.info("Unexpected while reading CPU temp")
 
-                    try:
-                        temp_sqlite = measure_tempSQLite()
+            try:
+                humidity, temperature = dht.read_retry(
+                    sensor, DHT22pin)
+                logging.debug("External Initial Temperature   C : %s", temperature)
+                logging.debug("External Humidity percentual     : %s", humidity)
 
-                    except Exception as e:
-                        temp_sqlite = 32
-                        logging.debug(
-                            "Unexpected Exception SQLite3 temp : %s", e)
+            except Exception as e:
+                humidity, temperature = 40, 40
+                logging.debug(
+                    "Unexpected Exception DHT22 sensor : %s", e)
+
+            try:
+                temp_sqlite = measure_tempSQLite()
+                logging.debug("temp_sqlite - Temp in SQLite   C : %s", temp_sqlite)
+        
+            except Exception as e:
+                temp_sqlite = 32
+                logging.debug(
+                    "Unexpected Exception SQLite3 temp : %s", e)
+
 
             if temperature > 35:
                 for i in range(80):
