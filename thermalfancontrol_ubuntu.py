@@ -79,7 +79,7 @@ try:
 
         killer = GracefulKiller()
 
-        filepath = '/home/ubuntu/projs/iot/'
+        filepath = '/var/log/'
         filenameonly = 'thermalfancontrol.log'
         filenamefull = filepath + filenameonly
 
