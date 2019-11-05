@@ -321,6 +321,19 @@ try:
                 temp = 34
                 logging.info("Unexpected while reading CPU temp")
 
+
+            try:
+                temp_sqlite = measure_tempSQLite()
+                logging.debug("temp_sqlite - Temp in SQLite   C : %s", temp_sqlite)
+        
+            except Exception as e:
+                temp_sqlite = 32
+                logging.debug(
+                    "Unexpected Exception SQLite3 temp : %s", e)
+
+
+            temperature_old = temperature
+
             try:
                 humidity, temperature = dht.read_retry(
                     sensor, DHT22pin)
@@ -332,20 +345,16 @@ try:
                 logging.debug(
                     "Unexpected Exception DHT22 sensor : %s", e)
 
-            try:
-                temp_sqlite = measure_tempSQLite()
-                logging.debug("temp_sqlite - Temp in SQLite   C : %s", temp_sqlite)
-        
-            except Exception as e:
-                temp_sqlite = 32
-                logging.debug(
-                    "Unexpected Exception SQLite3 temp : %s", e)
 
             # O sensor pode 'bugar' e retornar None
             # quando diversas consultas são feitas
             # com intervalo de poucos segundos
-            if temperature is None:
+            # nesse caso a exception acima não captura
+            if temperature is None and temperature_old is not None:
+                temperature = temperature_old
+            else:
                 temperature = 40
+
 
             if temperature > 35:
                 for i in range(80):
@@ -394,4 +403,4 @@ try:
 except Exception as e:
     print('The program is already running.')
     print('It is not allowed two programs running at same time')
-    raise Exception('{}'.format(e))
+    exit('Exiting... Done it!')
