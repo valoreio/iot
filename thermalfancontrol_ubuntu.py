@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-#  Code styled according to pycodestyle
+# Code styled according to pycodestyle
 
 
 __author__ = "Marcos Aurelio Barranco"
@@ -337,8 +337,12 @@ try:
             try:
                 humidity, temperature = dht.read_retry(
                     sensor, DHT22pin)
-                logging.debug("External Initial Temperature   C : %s", temperature)
-                logging.debug("External Humidity percentual     : %s", humidity)
+
+                logging.debug(
+                    "Temp read from external env  : %s", temperature)
+
+                logging.debug(
+                    "External Humidity percentual : %s", humidity)
 
             except Exception as e:
                 humidity, temperature = 40, 40
@@ -349,11 +353,10 @@ try:
             # O sensor pode 'bugar' e retornar None
             # quando diversas consultas são feitas
             # com intervalo de poucos segundos
-            # nesse caso a exception acima não captura
             if temperature is None and temperature_old is not None:
                 temperature = temperature_old
-            else:
-                temperature = 40
+                logging.debug(
+                    ">>>>>>>None temp is not good : %s", temperature)
 
 
             if temperature > 35:
@@ -399,6 +402,8 @@ try:
                                         for i in range(3000):
                                             time.sleep(.0001)
 
+
+            logging.info("**********************************")
 
 except Exception as e:
     print('The program is already running.')
