@@ -14,14 +14,13 @@ __status__ = "Production"
 
 
 '''
-Code to control electric fan of Raspberry Pi
+Code to control the electric fan of Raspberry Pi
 according to internal and external temperatures.
 
 -DHT22 sensor is reading external temperatura
--Internal temperature is reading cpu temperature
-     through linux commands
+-CPU internal temperature is read by linux commands
 -SQLite3 maintain fixed value to handle as a
-     minimal temperature to start the fan
+ minimal temperature to start the fan
 '''
 
 import os
@@ -44,9 +43,16 @@ try:
         import re
         import logging
         import signal
-        import RPi.GPIO as GPIO
         from security_connections_data2 import sqlite3_host2
-        
+
+        try:
+            import RPi.GPIO as GPIO
+
+        except ImportError:
+            sys.exit("""You need RPi
+                install it from http://pypi.python.org/
+                or run pip3 install RPi""")
+
         try:
             import Adafruit_DHT as dht
 
@@ -98,6 +104,8 @@ try:
 
         def measure_tempCPU():
 
+            tempCPU = 40
+
             try:
                 '''
                 formato para o Ubuntu IoT
@@ -106,8 +114,7 @@ try:
                     ['cat', '/sys/class/thermal/thermal_zone0/temp'],
                     stdout=subprocess.PIPE)
 
-                m = (int(result.stdout.decode('utf-8')) / 1000)
-                return float(m)
+                tempCPU = (int(result.stdout.decode('utf-8')) / 1000)
 
             except Exception as e:
                 '''
@@ -118,18 +125,25 @@ try:
                         ['vcgencmd', 'measure_temp'],
                         stdout=subprocess.PIPE)
 
-                    m = re.match(r"temp=(\d+\.?\d*)'C", raw)
-                    return float(m.group(1))
+                    tempCPU = re.match(r"temp=(\d+\.?\d*)'C", raw)
+                    tempCPU = tempCPU.group(1)
 
                 except Exception as e:
                     '''
                     Assume o valor 34. Não iremos testar
                     centenas de Linux disponíveis
                     '''
-                    m = 34
-                    return float(m)
+                    tempCPU = 40
+
+            finally:
+
+                return float(tempCPU)
+
 
         def measure_tempSQLite():
+
+            tempSQLite = 40
+            
             try:
                 conn = sqlite3.connect(sqlite3_host2)
                 cursor = conn.cursor()
@@ -138,7 +152,7 @@ try:
                     where ID = 1""")
 
                 for i in cursor.fetchone():
-                    return i
+                    tempSQLite = i
 
             except Exception as e:
                 try:
@@ -180,7 +194,8 @@ try:
                 if conn:
                     conn.close()
 
-                return 32
+                return tempSQLite
+
 
         """
         GPIO 26 ou pino 37 fisico,
@@ -215,10 +230,10 @@ try:
             temp_sqlite = measure_tempSQLite()
 
         except Exception as e:
-            temp_sqlite = 34
+            temp_sqlite = 40
             logging.debug(
                 "Unexpected Exception while reading SQLite temp : %s", e)
-            logging.info("Temp sqlite was settled to 34")
+            logging.info("Temp sqlite was settled to 40")
 
         # Lê temperatura e humidade do sensor DHT22
         try:
@@ -236,7 +251,7 @@ try:
             temp = measure_tempCPU()
 
         except Exception as e:
-            temp = 34
+            temp = 40
             logging.debug(
                 "Unexpected Exception while reading CPU temp : %s", e)
             logging.info("CPU temp was settled to 34")
@@ -267,7 +282,9 @@ try:
             except Exception as e:
                 logging.debug("Unexpected while killing : %s", e)
 
-
+            # temp = RPi CPU temperature
+            # temp_control = RPi CPU temperature + 5 C
+            # temp_sqlite = temperature of control stored in SQLite
             if temp > temp_control or temp > temp_sqlite:
                 if not GPIO.input(FANpin):
 
@@ -318,7 +335,7 @@ try:
                 logging.debug("Temp read NOW from the RPi board : %s", temp)
 
             except Exception as e:
-                temp = 34
+                temp = 40
                 logging.info("Unexpected while reading CPU temp")
 
 
@@ -327,22 +344,23 @@ try:
                 logging.debug("temp_sqlite - Temp in SQLite   C : %s", temp_sqlite)
         
             except Exception as e:
-                temp_sqlite = 32
+                temp_sqlite = 40
                 logging.debug(
                     "Unexpected Exception SQLite3 temp : %s", e)
 
 
             temperature_old = temperature
 
+
             try:
                 humidity, temperature = dht.read_retry(
                     sensor, DHT22pin)
 
                 logging.debug(
-                    "Temp read from external env  : %s", temperature)
+                    "Temp read from external env      : %s", temperature)
 
                 logging.debug(
-                    "External Humidity percentual : %s", humidity)
+                    "External Humidity percentual     : %s", humidity)
 
             except Exception as e:
                 humidity, temperature = 40, 40
@@ -350,13 +368,30 @@ try:
                     "Unexpected Exception DHT22 sensor : %s", e)
 
 
-            # O sensor pode 'bugar' e retornar None
-            # quando diversas consultas são feitas
-            # com intervalo de poucos segundos
-            if temperature is None and temperature_old is not None:
-                temperature = temperature_old
+            # O sensor de temperatura é de baixo custo e pode 'bugar'
+            # e dessa forma retornar um valor lido não real.
+            # A precisão do sensor não é de 100%
+            if temperature is not None and temperature < (temperature * (50/100)):
                 logging.debug(
-                    ">>>>>>>None temp is not good : %s", temperature)
+                    ">>>>>>>temp read unreal          : %s", temperature)
+
+                temperature = temperature_old
+
+                logging.debug(
+                    ">>>>>>>temp setted to old one    : %s", temperature)
+
+
+            # O sensor de temperatura é de baixo custo e pode 'bugar'
+            # e dessa forma retornar None quando diversas consultas
+            # são feitas com intervalo de poucos segundos
+            if temperature is None and temperature_old is not None:
+                logging.debug(
+                    ">>>>>>>None temp is not good     : %s", temperature)
+
+                temperature = temperature_old
+
+                logging.debug(
+                    ">>>>>>>temp setted to old one    : %s", temperature)
 
 
             if temperature > 35:
@@ -402,10 +437,10 @@ try:
                                         for i in range(3000):
                                             time.sleep(.0001)
 
-
             logging.info("**********************************")
 
 except Exception as e:
+
     print('The program is already running.')
     print('It is not allowed two programs running at same time')
     exit('Exiting... Done it!')
