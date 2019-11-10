@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf- -*-
-#  Style coded according to pycodestyle
+# Style coded according to pycodestyle
 
 
 __author__ = "Marcos Aurelio Barranco"
@@ -34,8 +34,8 @@ def createdb():
             id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
             cputemperaturevalue INTEGER);""")
 
-    except Exception as e1:
-        raise Exception("ErrCreateTable-1 : {0}".format(e1))
+    except Exception as e:
+        raise Exception("ErrCreateTable-1 : {0}".format(e))
 
     finally:
         if conn:
@@ -51,8 +51,8 @@ def list_all_records():
         for linha in cursor.fetchall():
             print(linha)
 
-    except Exception as e2:
-        raise Exception("ErrSel-1 : ".format(e2))
+    except Exception as e:
+        raise Exception("ErrSel-1 : ".format(e))
 
     finally:
         if conn:
@@ -66,15 +66,15 @@ def insertdb():
 
         try:
             cursor.execute("""INSERT INTO cputemperature (cputemperaturevalue)
-                VALUES (32)""")
+                VALUES (35)""")
 
             conn.commit()
 
-        except Exception as e3:
-            raise Exception("ErrIns-1 : {0}".format(e3))
+        except Exception as e:
+            raise Exception("ErrIns-1 : {0}".format(e))
 
-    except Exception as e4:
-        raise Exception("ErrIns-2 : {0}".format(e4))
+    except Exception as e:
+        raise Exception("ErrIns-2 : {0}".format(e))
 
     finally:
         if conn:
@@ -93,11 +93,11 @@ def alter_thermal_value(vcpu):
 
             conn.commit()
 
-        except Exception as e5:
-            raise Exception("ErrUpd-1 : {0}".format(e5))
+        except Exception as e:
+            raise Exception("ErrUpd-1 : {0}".format(e))
 
-    except Exception as e6:
-        raise Exception("ErrUpd-2 : {0}".format(e6))
+    except Exception as e:
+        raise Exception("ErrUpd-2 : {0}".format(e))
 
     finally:
         if conn:
@@ -126,7 +126,7 @@ if __name__ == '__main__':
 
             if varinput == 2:
                 insertdb()
-                print("32 was inserted into cputemperature table")
+                print("Record inserted into cputemperature table")
 
             if varinput == 3:
                 list_all_records()
@@ -143,13 +143,13 @@ if __name__ == '__main__':
 
                         list_all_records()
 
-                    except Exception as e7:
-                        print("ErrWhile-1 : {0}".format(e7))
+                    except Exception as e:
+                        print("ErrWhile-1 : {0}".format(e))
                         print("in this time inform a valid value.")
 
             if varinput == 5:
                 sys.exit(0)
 
-        except Exception as e8:
-            print("ErrWhile-2 : {0}".format(e8))
+        except Exception as e:
+            print("ErrWhile-2 : {0}".format(e))
             print("Value informed is not valid")

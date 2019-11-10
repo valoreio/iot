@@ -96,7 +96,8 @@ try:
         logfiles-with-logrotate-on-ubuntu-16-04
         """
 
-        logging.basicConfig(filename=filenamefull,
+        logging.basicConfig(
+            filename=filenamefull,
             level=logging.DEBUG,
             format='%(asctime)s %(levelname)s %(message)s',
             datefmt='[%d/%m/%Y-%H:%M:%S]',
@@ -104,46 +105,58 @@ try:
 
         def measure_tempCPU():
 
-            tempCPU = 40
+            tempCPU = 35
 
             try:
                 '''
                 formato para o Ubuntu IoT
                 '''
-                result = subprocess.run(
+                out = subprocess.Popen(
                     ['cat', '/sys/class/thermal/thermal_zone0/temp'],
-                    stdout=subprocess.PIPE)
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT)
 
-                tempCPU = (int(result.stdout.decode('utf-8')) / 1000)
+                stdout, stderr = out.communicate()
+
+                if stderr is None:
+                    tempCPU = int(stdout) / 1000
+                else:
+                    tempCPU = 35
 
             except Exception as e:
-                '''
-                formato para o Raspbian
-                '''
-                try:
-                    raw = subprocess.run(
-                        ['vcgencmd', 'measure_temp'],
-                        stdout=subprocess.PIPE)
 
-                    tempCPU = re.match(r"temp=(\d+\.?\d*)'C", raw)
-                    tempCPU = tempCPU.group(1)
+                try:
+                    '''
+                    formato para o Raspbian
+                    '''
+                    out = subprocess.Popen(
+                        ['vcgencmd', 'measure_temp'],
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.STDOUT)
+
+                    stdout, stderr = out.communicate()
+
+                    if stderr is None:
+                        tempCPU = re.match(r"temp=(\d+\.?\d*)'C", out)
+                        tempCPU = tempCPU.group(1)
+                    else:
+                        tempCPU = 35
 
                 except Exception as e:
                     '''
                     Assume o valor 34. Não iremos testar
                     centenas de Linux disponíveis
                     '''
-                    tempCPU = 40
+                    tempCPU = 35
 
             finally:
 
                 return float(tempCPU)
 
-
         def measure_tempSQLite():
 
-            tempSQLite = 40
-            
+            tempSQLite = 35
+
             try:
                 conn = sqlite3.connect(sqlite3_host2)
                 cursor = conn.cursor()
@@ -159,7 +172,8 @@ try:
                     conn = sqlite3.connect(sqlite3_host2)
                     cursor = conn.cursor()
 
-                    cursor.execute("""CREATE TABLE if not EXISTS cputemperature (
+                    cursor.execute("""CREATE TABLE if not EXISTS
+                        cputemperature (
                         id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
                         cputemperaturevalue INTEGER);""")
 
@@ -178,11 +192,12 @@ try:
 
                     try:
                         cursor.execute("""INSERT INTO cputemperature
-                            (cputemperaturevalue) VALUES (32)""")
+                            (cputemperaturevalue) VALUES (35)""")
 
                         conn.commit()
 
-                        logging.info("record was inserted in table cputemperature with value 32C")
+                        logging.info(
+                            "record was inserted in table cputemperature")
 
                     except Exception as e3:
                         raise Exception("ErrIns-1 : {0}".format(e3))
@@ -195,7 +210,6 @@ try:
                     conn.close()
 
                 return tempSQLite
-
 
         """
         GPIO 26 ou pino 37 fisico,
@@ -230,20 +244,20 @@ try:
             temp_sqlite = measure_tempSQLite()
 
         except Exception as e:
-            temp_sqlite = 40
+            temp_sqlite = 35
             logging.debug(
                 "Unexpected Exception while reading SQLite temp : %s", e)
-            logging.info("Temp sqlite was settled to 40")
+            logging.info("Temp sqlite was settled to 35")
 
         # Lê temperatura e humidade do sensor DHT22
         try:
             humidity, temperature = dht.read_retry(sensor, DHT22pin)
 
         except Exception as e:
-            humidity, temperature = 40, 40
+            humidity, temperature = 35, 35
             logging.debug(
                 "Unexpected Exception while reading DHT22 sensor : %s", e)
-            logging.info("humidity and temperature was settled to 40")
+            logging.info("humidity and temperature was settled to 35")
 
         # Lê temperatura inicial e interna da CPU
         # do Raspberry via comando Linux
@@ -251,7 +265,7 @@ try:
             temp = measure_tempCPU()
 
         except Exception as e:
-            temp = 40
+            temp = 35
             logging.debug(
                 "Unexpected Exception while reading CPU temp : %s", e)
             logging.info("CPU temp was settled to 34")
@@ -335,24 +349,22 @@ try:
                 logging.debug("Temp read NOW from the RPi board : %s", temp)
 
             except Exception as e:
-                temp = 40
+                temp = 35
                 logging.info("Unexpected while reading CPU temp")
-
 
             try:
                 temp_sqlite = measure_tempSQLite()
-                logging.debug("temp_sqlite - Temp in SQLite   C : %s", temp_sqlite)
-        
+                logging.debug(
+                    "temp_sqlite - Temp in SQLite   C : %s", temp_sqlite)
+
             except Exception as e:
-                temp_sqlite = 40
+                temp_sqlite = 35
                 logging.debug(
                     "Unexpected Exception SQLite3 temp : %s", e)
 
-
-            temperature_old = temperature
-
-
             try:
+                temperature_old = temperature
+
                 humidity, temperature = dht.read_retry(
                     sensor, DHT22pin)
 
@@ -363,10 +375,9 @@ try:
                     "External Humidity percentual     : %s", humidity)
 
             except Exception as e:
-                humidity, temperature = 40, 40
+                humidity, temperature = 35, 35
                 logging.debug(
                     "Unexpected Exception DHT22 sensor : %s", e)
-
 
             # O sensor de temperatura é de baixo custo e pode 'bugar'
             # e dessa forma retornar um valor lido não real.
@@ -380,7 +391,6 @@ try:
                 logging.debug(
                     ">>>>>>>temp setted to old one    : %s", temperature)
 
-
             # O sensor de temperatura é de baixo custo e pode 'bugar'
             # e dessa forma retornar None quando diversas consultas
             # são feitas com intervalo de poucos segundos
@@ -393,7 +403,9 @@ try:
                 logging.debug(
                     ">>>>>>>temp setted to old one    : %s", temperature)
 
-
+            # A temperatura externa, lida pelo sensor DHT22, controla
+            # o tempo que o sleep irá aguardar
+            # quanto maior a temperatura externa, menor o tempo aguardando
             if temperature > 35:
                 for i in range(80):
                     time.sleep(.0001)
