@@ -17,10 +17,17 @@ __status__ = "Production"
 Code to control the electric fan of Raspberry Pi
 according to internal and external temperatures.
 
--DHT22 sensor is reading external temperatura
--CPU internal temperature is read by linux commands
--SQLite3 maintain fixed value to handle as a
+DHT22 sensor is reading external temperatura
+
+CPU internal temperature is read by linux commands
+
+SQLite3 maintain fixed value to handle as a
  minimal temperature to start the fan
+
+The green led turn on and off through the this code
+
+The blue led turn on and off through the hardware
+setup using transistors, diodes,
 '''
 
 import os
@@ -70,17 +77,14 @@ try:
                 or run pip3 install sqlite3""")
 
         class GracefulKiller(object):
-
             kill_now = False
 
             def __init__(self):
-
                 signal.signal(signal.SIGINT, self.exit_gracefully)
                 signal.signal(signal.SIGTERM, self.exit_gracefully)
                 signal.signal(signal.SIGHUP, self.exit_gracefully)
 
             def exit_gracefully(self, signum, frame):
-
                 self.kill_now = True
 
         killer = GracefulKiller()
@@ -104,9 +108,6 @@ try:
             filemode='a')
 
         def measure_tempCPU():
-
-            tempCPU = 35
-
             try:
                 '''
                 formato para o Ubuntu IoT
@@ -124,7 +125,6 @@ try:
                     tempCPU = 35
 
             except Exception as e:
-
                 try:
                     '''
                     formato para o Raspbian
@@ -144,19 +144,15 @@ try:
 
                 except Exception as e:
                     '''
-                    Assume o valor 34. Não iremos testar
+                    Assume o valor abaixo. Não iremos testar
                     centenas de Linux disponíveis
                     '''
                     tempCPU = 35
 
             finally:
-
                 return float(tempCPU)
 
         def measure_tempSQLite():
-
-            tempSQLite = 35
-
             try:
                 conn = sqlite3.connect(sqlite3_host2)
                 cursor = conn.cursor()
@@ -199,7 +195,7 @@ try:
                         logging.info(
                             "record was inserted in table cputemperature")
 
-                        logging.info("record was inserted")
+                        tempSQLite = 35
 
                     except Exception as e3:
                         raise Exception("ErrIns-1 : {0}".format(e3))
@@ -214,6 +210,12 @@ try:
                 return tempSQLite
 
         """
+        GPIO 18 ou pino 12 fisico,
+        ou 6o. pino da linha 5V
+        """
+        FANpin = 18
+
+        """
         GPIO 26 ou pino 37 fisico,
         ou penultimo pino da linha 3,3V
         """
@@ -226,11 +228,6 @@ try:
         DHT22pin = 22
         sensor = dht.DHT22
 
-        """
-        GPIO 18 ou pino 12 fisico,
-        ou 6o. pino da linha 5V
-        """
-        FANpin = 18
         GPIO.setwarnings(False)
         GPIO.setmode(GPIO.BCM)
         GPIO.setup(FANpin, GPIO.OUT)
@@ -272,8 +269,6 @@ try:
                 "Unexpected Exception while reading CPU temp : %s", e)
             logging.info("CPU temp was settled to 34")
 
-        temp_control = temp + 5
-
         logging.info("****************B E G I N*********")
         logging.debug("File Path                        : %s", filepath)
         logging.debug("File Name                        : %s", filenameonly)
@@ -283,11 +278,9 @@ try:
         logging.debug("External Humidity percentual     : %s", humidity)
         logging.debug("temp - CPU Initial Tempe       C : %s", temp)
         logging.debug("temp_sqlite - Temp in SQLite   C : %s", temp_sqlite)
-        logging.debug("temp_control - Temp of Control C : %s", temp_control)
         logging.info("***************** E N D **************")
 
         while True:
-
             try:
                 if killer.kill_now:
                     logging.info("Exit by Signal Shutdown")
@@ -298,10 +291,9 @@ try:
             except Exception as e:
                 logging.debug("Unexpected while killing : %s", e)
 
-            # temp = RPi CPU temperature
-            # temp_control = RPi CPU temperature + 5 C
-            # temp_sqlite = temperature of control stored in SQLite
-            if temp > temp_control or temp > temp_sqlite:
+            # Liga a fan se a temperatura for maior do que a temperatura
+            # de controle armazenada no SQLite
+            if temp > temp_sqlite:
                 if not GPIO.input(FANpin):
 
                     logging.info(">>>")
@@ -319,7 +311,7 @@ try:
 
                     # Liga a fan
                     GPIO.output(FANpin, True)
-                    # Desliga o LED
+                    # Desliga o LED vermelho
                     GPIO.output(LEDpin, False)
                     logging.debug("turning ON GPIO: %s", FANpin)
 
@@ -342,7 +334,7 @@ try:
 
                     # Desliga a fan
                     GPIO.output(FANpin, False)
-                    # Liga o LED
+                    # Liga o LED vermelho
                     GPIO.output(LEDpin, True)
                     logging.debug("turning OFF GPIO: %s", FANpin)
 
@@ -384,7 +376,6 @@ try:
             # O sensor de temperatura é de baixo custo e pode 'bugar'
             # e dessa forma retornar um valor lido não real.
             # A precisão do sensor não é de 100%
-
             minimal_temperature = temperature * (50/100)
             if temperature is not None and temperature < minimal_temperature:
                 logging.debug(
@@ -413,39 +404,27 @@ try:
             if temperature > 35:
                 for i in range(80):
                     time.sleep(.0001)
-
             else:
-
                 if temperature > 33:
                     for i in range(160):
                         time.sleep(.0001)
-
                 else:
-
                     if temperature > 31:
                         for i in range(240):
                             time.sleep(.0001)
-
                     else:
-
                         if temperature > 29:
                             for i in range(320):
                                 time.sleep(.0001)
-
                         else:
-
                             if temperature > 27:
                                 for i in range(400):
                                     time.sleep(.0001)
-
                             else:
-
                                 if temperature > 25:
                                     for i in range(480):
                                         time.sleep(.0001)
-
                                 else:
-
                                     if temperature > 23:
                                         for i in range(640):
                                             time.sleep(.0001)
@@ -456,7 +435,6 @@ try:
             logging.info("**********************************")
 
 except Exception as e:
-
     print('The program is already running.')
     print('It is not allowed two programs running at same time')
     exit('Exiting... Done it!')
