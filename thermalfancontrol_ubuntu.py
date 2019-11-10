@@ -113,13 +113,8 @@ try:
                 '''
                 out = subprocess.Popen(
                     ['cat', '/sys/class/thermal/thermal_zone0/temp'],
-<<<<<<< HEAD
                     stdout=subprocess.PIPE,
                     stderr=subprocess.STDOUT)
-=======
-                    stdout = subprocess.PIPE,
-                    stderr = subprocess.STDOUT)
->>>>>>> 53c06a0d2252ef244406712674f00a3f5f7dd7ff
 
                 stdout, stderr = out.communicate()
 
@@ -136,19 +131,11 @@ try:
                     '''
                     out = subprocess.Popen(
                         ['vcgencmd', 'measure_temp'],
-<<<<<<< HEAD
                         stdout=subprocess.PIPE,
                         stderr=subprocess.STDOUT)
 
                     stdout, stderr = out.communicate()
 
-=======
-                        stdout = subprocess.PIPE,
-                        stderr = subprocess.STDOUT)
-
-                    stdout, stderr = out.communicate()
-
->>>>>>> 53c06a0d2252ef244406712674f00a3f5f7dd7ff
                     if stderr is None:
                         tempCPU = re.match(r"temp=(\d+\.?\d*)'C", out)
                         tempCPU = tempCPU.group(1)
@@ -169,11 +156,7 @@ try:
         def measure_tempSQLite():
 
             tempSQLite = 35
-<<<<<<< HEAD
 
-=======
-            
->>>>>>> 53c06a0d2252ef244406712674f00a3f5f7dd7ff
             try:
                 conn = sqlite3.connect(sqlite3_host2)
                 cursor = conn.cursor()
@@ -213,12 +196,10 @@ try:
 
                         conn.commit()
 
-<<<<<<< HEAD
                         logging.info(
                             "record was inserted in table cputemperature")
-=======
-                        logging.info("record was inserted in table cputemperature with value 35C")
->>>>>>> 53c06a0d2252ef244406712674f00a3f5f7dd7ff
+
+                        logging.info("record was inserted")
 
                     except Exception as e3:
                         raise Exception("ErrIns-1 : {0}".format(e3))
@@ -403,7 +384,9 @@ try:
             # O sensor de temperatura é de baixo custo e pode 'bugar'
             # e dessa forma retornar um valor lido não real.
             # A precisão do sensor não é de 100%
-            if temperature is not None and temperature < (temperature * (50/100)):
+
+            minimal_temperature = temperature * (50/100)
+            if temperature is not None and temperature < minimal_temperature:
                 logging.debug(
                     ">>>>>>>temp read unreal          : %s", temperature)
 
