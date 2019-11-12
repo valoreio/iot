@@ -1,1 +1,1 @@
-sqlite3_host2 = '/var/local/thermalfantemperature.db'
+sqlite3_host2 = './thermalfantemperature.db'
