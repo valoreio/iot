@@ -30,11 +30,12 @@ The blue led turn on and off through the hardware
 setup using transistors, diodes,
 '''
 
-import os
-if os.geteuid() != 0:
-    print("You need to have root privileges to run this script.")
-    print("Please try again, this time using 'sudo'.")
-    exit("Exiting... Done it!")
+# access-gpio-pins-without-root-no-access-to-dev-mem-try-running-as-root
+#import os
+#if os.geteuid() != 0:
+#    print("You need to have root privileges to run this script.")
+#    print("Please try again, this time using 'sudo'.")
+#    exit("Exiting... Done it!")
 
 '''
 pid is to prevent two codes running
@@ -43,7 +44,7 @@ check-to-see-if-python-script-is-running
 '''
 try:
     from pid import PidFile
-    with PidFile():
+    with PidFile(piddir="./prevents"):
         import subprocess
         import sys
         import time
@@ -89,7 +90,7 @@ try:
 
         killer = GracefulKiller()
 
-        filepath = '/var/log/'
+        filepath = './'
         filenameonly = 'thermalfancontrol.log'
         filenamefull = filepath + filenameonly
 
@@ -376,7 +377,9 @@ try:
             # O sensor de temperatura é de baixo custo e pode 'bugar'
             # e dessa forma retornar um valor lido não real.
             # A precisão do sensor não é de 100%
-            minimal_temperature = temperature * (50/100)
+            if temperature is not None:
+                minimal_temperature = temperature * (50/100)
+
             if temperature is not None and temperature < minimal_temperature:
                 logging.debug(
                     ">>>>>>>temp read unreal          : %s", temperature)
@@ -397,6 +400,16 @@ try:
 
                 logging.debug(
                     ">>>>>>>temp setted to old one    : %s", temperature)
+            else:
+                try:
+                    temp_sqlite = measure_tempSQLite()
+                    logging.debug(
+                        "temp_sqlite - Temp in SQLite   C : %s", temp_sqlite)
+
+                except Exception as e:
+                    temperature = 35
+                    logging.debug(
+                        "Unexpected Exception SQLite3 temp : %s", e)
 
             # A temperatura externa, lida pelo sensor DHT22, controla
             # o tempo que o sleep irá aguardar
@@ -437,4 +450,5 @@ try:
 except Exception as e:
     print('The program is already running.')
     print('It is not allowed two programs running at same time')
+    print(e)
     exit('Exiting... Done it!')
