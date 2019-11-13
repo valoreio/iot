@@ -7,7 +7,7 @@ __author__ = "Marcos Aurelio Barranco"
 __copyright__ = "Copyright 2016, The MIT License (MIT)"
 __credits__ = ["Marcos Aurelio Barranco", ]
 __license__ = "MIT"
-__version__ = "3"
+__version__ = "4"
 __maintainer__ = "Marcos Aurelio Barranco"
 __email__ = ""
 __status__ = "Production"
@@ -105,7 +105,7 @@ try:
                 if stderr is None:
                     tempCPU = int(stdout) / 1000
                 else:
-                    tempCPU = 35
+                    tempCPU = 32
 
             except Exception as e:
                 try:
@@ -123,14 +123,14 @@ try:
                         tempCPU = re.match(r"temp=(\d+\.?\d*)'C", out)
                         tempCPU = tempCPU.group(1)
                     else:
-                        tempCPU = 35
+                        tempCPU = 32
 
                 except Exception as e:
                     '''
                     Assume o valor abaixo. Não iremos testar
                     centenas de Linux disponíveis
                     '''
-                    tempCPU = 35
+                    tempCPU = 32
 
             finally:
                 return float(tempCPU)
@@ -171,14 +171,14 @@ try:
 
                     try:
                         cursor.execute("""INSERT INTO cputemperature
-                            (cputemperaturevalue) VALUES (35)""")
+                            (cputemperaturevalue) VALUES (32)""")
 
                         conn.commit()
 
                         logging.info(
                             "record was inserted in table cputemperature")
 
-                        tempSQLite = 35
+                        tempSQLite = 32
 
                     except Exception as e:
                         raise Exception("ErrIns-1 : {0}".format(e))
@@ -257,43 +257,42 @@ try:
             except Exception as e:
                 logging.debug("Unexpected while killing : %s", e)
 
-            # Lê a temperatura da CPU
-            # do Raspberry via comando Linux
+            # SQLite DB temperature
             try:
-                temp = measure_tempCPU()
+                tempSQLite = measure_tempSQLite()
 
             except Exception as e:
-                temp = 35
+                tempSQLite = 32
                 logging.debug(
-                    "Unexpected Exception while reading CPU temp : %s", e)
+                    "Unexpected Exception while reading SQLite temp : %s", e)
                 logging.debug(
-                    "CPU temp was settled to : %s", temp)
+                    "Temp sqlite was settled to : %s", tempSQLite)
 
-            # Lê temperatura e humidade do sensor DHT22
+            # CPU temperature by Linux command
+            try:
+                tempCPU = measure_tempCPU()
+
+            except Exception as e:
+                tempCPU = 32
+                logging.debug(
+                    "Unexpected Exception while reading CPU tempCPU: %s", e)
+                logging.debug(
+                    "CPU temp was settled to : %s", tempCPU)
+
+            # DHT22 sensor temperature
             try:
                 humidity, temperature = dht.read_retry(sensor, DHT22pin)
 
             except Exception as e:
-                humidity, temperature = 35, 35
+                humidity, temperature = 32, 32
                 logging.debug(
                     "Unexpected Exception while reading DHT22 sensor : %s", e)
                 logging.debug(
                     "humidity and temperature was settled to : %s", temperature)
 
-            # Lê temperatura no SQLite DB
-            try:
-                temp_sqlite = measure_tempSQLite()
-
-            except Exception as e:
-                temp_sqlite = 35
-                logging.debug(
-                    "Unexpected Exception while reading SQLite temp : %s", e)
-                logging.debug(
-                    "Temp sqlite was settled to : %s", temp_sqlite)
-
             # Liga a fan se a temperatura for maior do que a temperatura
             # de controle armazenada no SQLite
-            if temp > temp_sqlite:
+            if tempCPU > tempSQLite:
                 if not GPIO.input(FANpin):
                     # Liga a fan
                     GPIO.output(FANpin, True)
@@ -309,11 +308,13 @@ try:
                         "Environment temperature   C : %s", temperature)
 
                     logging.debug(
-                        "CPU temperature           C : %s", temp)
+                        "CPU temperature           C : %s", tempCPU)
 
                     logging.debug(
-                        "SQLite temperature stored C : %s", temp_sqlite)
+                        "SQLite temperature stored C : %s", tempSQLite)
             else:
+                # Desliga a fan porque a temperatura da CPU está abaixo
+                # da temperatura de controle armazenada no SQLite
                 if GPIO.input(FANpin):
                     # Desliga a fan
                     GPIO.output(FANpin, False)
@@ -329,10 +330,10 @@ try:
                         "Environment temperature   C : %s", temperature)
 
                     logging.debug(
-                        "CPU temperature           C : %s", temp)
+                        "CPU temperature           C : %s", tempCPU)
 
                     logging.debug(
-                        "SQLite temperature stored C : %s", temp_sqlite)
+                        "SQLite temperature stored C : %s", tempSQLite)
 
             # O sensor de temperatura é de baixo custo e pode 'bugar'
             # e dessa forma retornar um valor lido não real.
@@ -342,17 +343,19 @@ try:
 
             if temperature is not None and temperature < minimal_temperature:
                 logging.debug(
-                    ">>>>>>>temp read UNREAL      : %s", temperature)
+                    ">>>>>>>temp read from sensor is UNREAL : %s", temperature)
 
                 try:
                     temperature = measure_tempSQLite()
+                    logging.debug(
+                        ">>>>>>>temp set to NEW one         : %s", temperature)
 
                 except Exception as e:
-                    temperature = 35
+                    temperature = 32
                     logging.debug(
-                        "Unexpected Exception SQLite3 temp : %s", e)
+                        "Unexpected Exception SQLite3 temp  : %s", e)
                     logging.debug(
-                        ">>>>>>>temp setted to NEW one     : %s", temperature)
+                        ">>>>>>>temp set to NEW one         : %s", temperature)
 
             # O sensor de temperatura é de baixo custo e pode 'bugar'
             # e dessa forma retornar None quando diversas consultas
@@ -363,17 +366,19 @@ try:
 
                 try:
                     temperature = measure_tempSQLite()
+                    logging.debug(
+                        ">>>>>>>temp set to NEW one     : %s", temperature)
 
                 except Exception as e:
-                    temperature = 35
+                    temperature = 32
                     logging.debug(
                         "Unexpected Exception SQLite3 temp : %s", e)
                     logging.debug(
-                        ">>>>>>>temp setted to NEW one     : %s", temperature)
+                        ">>>>>>>temp set to NEW one        : %s", temperature)
 
             # A temperatura externa, lida pelo sensor DHT22, controla
-            # o tempo que do sleep
-            # quanto maior a temperatura externa, menor o tempo aguardando
+            # o tempo do sleep, quanto maior a temperatura externa,
+            # menor o tempo aguardando
             if temperature > 35:
                 for i in range(80):
                     time.sleep(.0001)

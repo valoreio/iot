@@ -66,7 +66,7 @@ def insertdb():
 
         try:
             cursor.execute("""INSERT INTO cputemperature (cputemperaturevalue)
-                VALUES (35)""")
+                VALUES (32)""")
 
             conn.commit()
 
