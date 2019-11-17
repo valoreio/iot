@@ -31,11 +31,11 @@ setup using transistors, diodes,
 '''
 
 # access-gpio-pins-without-root-no-access-to-dev-mem-try-running-as-root
-#import os
-#if os.geteuid() != 0:
-#    print("You need to have root privileges to run this script.")
-#    print("Please try again, this time using 'sudo'.")
-#    exit("Exiting... Done it!")
+import os
+if os.geteuid() != 0:
+    print("You need to have root privileges to run this script.")
+    print("Please try again, this time using 'sudo'.")
+    exit("Exiting... Done it!")
 
 '''
 pid is to prevent two codes running
@@ -239,6 +239,10 @@ try:
             filemode='a')
 
         logging.info("****************B E G I N*************")
+        logging.info("Turn the fan ON when the CPU temperature")
+        logging.info("is greater than the temperature of control")
+        logging.info("stored in SQLite")
+        logging.info("**************************************")
         logging.debug("File Path      : %s", filepath)
         logging.debug("File Name      : %s", filenameonly)
         logging.debug("GPIO pin DHT22 : %s", DHT22pin)
@@ -299,19 +303,20 @@ try:
                     # Desliga o LED vermelho
                     GPIO.output(LEDpin, False)
 
-                    logging.debug(">>> turning ON GPIO: %s", FANpin)
+                    logging.debug(
+                        ">>> turning ON GPIO          : %s", FANpin)
 
                     logging.debug(
-                        "Humidity percentual         : %s", humidity)
+                        "Humidity percentual          : %s", humidity)
 
                     logging.debug(
-                        "Environment temperature   C : %s", temperature)
+                        "Environment temperature    C : %s", temperature)
 
                     logging.debug(
-                        "CPU temperature           C : %s", tempCPU)
+                        "CPU temperature            C : %s", tempCPU)
 
                     logging.debug(
-                        "SQLite temperature stored C : %s", tempSQLite)
+                        "SQLite temperature stored  C : %s", tempSQLite)
             else:
                 # Desliga a fan porque a temperatura da CPU está abaixo
                 # da temperatura de controle armazenada no SQLite
@@ -321,19 +326,20 @@ try:
                     # Liga o LED vermelho
                     GPIO.output(LEDpin, True)
 
-                    logging.debug("<<< turning OFF GPIO: %s", FANpin)
+                    logging.debug(
+                        "<<< turning OFF GPIO         : %s", FANpin)
                     
                     logging.debug(
-                        "Humidity percentual         : %s", humidity)
+                        "Humidity percentual          : %s", humidity)
 
                     logging.debug(
-                        "Environment temperature   C : %s", temperature)
+                        "Environment temperature    C : %s", temperature)
 
                     logging.debug(
-                        "CPU temperature           C : %s", tempCPU)
+                        "CPU temperature            C : %s", tempCPU)
 
                     logging.debug(
-                        "SQLite temperature stored C : %s", tempSQLite)
+                        "SQLite temperature stored  C : %s", tempSQLite)
 
             # O sensor de temperatura é de baixo custo e pode 'bugar'
             # e dessa forma retornar um valor lido não real.
@@ -343,31 +349,31 @@ try:
 
             if temperature is not None and temperature < minimal_temperature:
                 logging.debug(
-                    ">>>>>>>temp read from sensor is UNREAL : %s", temperature)
+                    ">>>>>>>The temperature read from the sensor is UNREAL      : %s", temperature)
 
                 try:
                     temperature = measure_tempSQLite()
                     logging.debug(
-                        ">>>>>>>temp set to NEW one         : %s", temperature)
+                        ">>>>>>>The temperature was set to default stored on SQLite : %s", temperature)
 
                 except Exception as e:
                     temperature = 32
                     logging.debug(
-                        "Unexpected Exception SQLite3 temp  : %s", e)
+                        "Unexpected Exception SQLite3 temp : %s", e)
                     logging.debug(
-                        ">>>>>>>temp set to NEW one         : %s", temperature)
+                        ">>>>>>>temp set to NEW one        : %s", temperature)
 
             # O sensor de temperatura é de baixo custo e pode 'bugar'
             # e dessa forma retornar None quando diversas consultas
             # são feitas com intervalo de poucos segundos
             if temperature is None:
                 logging.debug(
-                    ">>>>>>>None temp is not good : %s", temperature)
+                    ">>>>>>>It was read None temperature. It's not good         : %s", temperature)
 
                 try:
                     temperature = measure_tempSQLite()
                     logging.debug(
-                        ">>>>>>>temp set to NEW one     : %s", temperature)
+                        ">>>>>>>The temperature was set to default stored on SQLite : %s", temperature)
 
                 except Exception as e:
                     temperature = 32
