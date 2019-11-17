@@ -238,16 +238,16 @@ try:
             datefmt='[%d/%m/%Y-%H:%M:%S]',
             filemode='a')
 
-        logging.info("****************B E G I N*************")
-        logging.info("Turn the fan ON when the CPU temperature")
-        logging.info("is greater than the temperature of control")
-        logging.info("stored in SQLite")
-        logging.info("**************************************")
+        logging.info("****************B E G I N*********************")
+        logging.info("* Turn the fan ON when the CPU temperature   *")
+        logging.info("* is greater than the temperature of control *")
+        logging.info("* stored in SQLite                           *")
+        logging.info("**********************************************")
         logging.debug("File Path      : %s", filepath)
         logging.debug("File Name      : %s", filenameonly)
         logging.debug("GPIO pin DHT22 : %s", DHT22pin)
         logging.debug("GPIO pin Fan   : %s", FANpin)
-        logging.info("***************** E N D **************")
+        logging.info("***************** E N D **********************")
 
         while True:
 
@@ -292,7 +292,7 @@ try:
                 logging.debug(
                     "Unexpected Exception while reading DHT22 sensor : %s", e)
                 logging.debug(
-                    "humidity and temperature was settled to : %s", temperature)
+                    "humidity and temperature was settled to         : %s", temperature)
 
             # Liga a fan se a temperatura for maior do que a temperatura
             # de controle armazenada no SQLite
@@ -328,7 +328,7 @@ try:
 
                     logging.debug(
                         "<<< turning OFF GPIO         : %s", FANpin)
-                    
+
                     logging.debug(
                         "Humidity percentual          : %s", humidity)
 
@@ -341,34 +341,14 @@ try:
                     logging.debug(
                         "SQLite temperature stored  C : %s", tempSQLite)
 
-            # O sensor de temperatura é de baixo custo e pode 'bugar'
-            # e dessa forma retornar um valor lido não real.
+            # O sensor de humidade e temperatura é de baixo custo e pode 'bugar'
             # A precisão do sensor não é de 100%
-            if temperature is not None:
-                minimal_temperature = temperature * (50/100)
-
-            if temperature is not None and temperature < minimal_temperature:
-                logging.debug(
-                    ">>>>>>>The temperature read from the sensor is UNREAL      : %s", temperature)
-
-                try:
-                    temperature = measure_tempSQLite()
-                    logging.debug(
-                        ">>>>>>>The temperature was set to default stored on SQLite : %s", temperature)
-
-                except Exception as e:
-                    temperature = 32
-                    logging.debug(
-                        "Unexpected Exception SQLite3 temp : %s", e)
-                    logging.debug(
-                        ">>>>>>>temp set to NEW one        : %s", temperature)
-
-            # O sensor de temperatura é de baixo custo e pode 'bugar'
-            # e dessa forma retornar None quando diversas consultas
-            # são feitas com intervalo de poucos segundos
             if temperature is None:
+                # O sensor fez a leitura e deu erro. O valor retornado foi "None",
+                # isso pode acontecer quando diversas consultas são feitas com
+                # intervalo de poucos segundos
                 logging.debug(
-                    ">>>>>>>It was read None temperature. It's not good         : %s", temperature)
+                    ">>>>>>>The temperature read from the sensor is None        : %s", temperature)
 
                 try:
                     temperature = measure_tempSQLite()
@@ -380,8 +360,28 @@ try:
                     logging.debug(
                         "Unexpected Exception SQLite3 temp : %s", e)
                     logging.debug(
-                        ">>>>>>>temp set to NEW one        : %s", temperature)
+                        ">>>>>>>The temperature was set to : %s", temperature)
+            else:
+                minimal_temperature = temperature * (50/100)
+                maximal_temperature = temperature * (1+(50/100))
+                
+                if temperature < minimal_temperature or temperature > maximal_temperature:
+                    # O sensor fez a leitura de um valor incorreto
+                    logging.debug(
+                        ">>>>>>>The temperature read from the sensor is UNREAL      : %s", temperature)
 
+                    try:
+                        temperature = measure_tempSQLite()
+                        logging.debug(
+                            ">>>>>>>The temperature was set to default stored on SQLite : %s", temperature)
+
+                    except Exception as e:
+                        temperature = 32
+                        logging.debug(
+                            "Unexpected Exception SQLite3 temp : %s", e)
+                        logging.debug(
+                            ">>>>>>>temp set to NEW one        : %s", temperature)
+                
             # A temperatura externa, lida pelo sensor DHT22, controla
             # o tempo do sleep, quanto maior a temperatura externa,
             # menor o tempo aguardando
