@@ -243,13 +243,15 @@ try:
         logging.debug("File Name      : %s", filenameonly)
         logging.debug("GPIO pin DHT22 : %s", DHT22pin)
         logging.debug("GPIO pin Fan   : %s", FANpin)
-        logging.info("***************** E N D **********************")
 
         while True:
 
             try:
                 if killer.kill_now:
                     logging.info("Exit by Signal Shutdown")
+                    logging.info(
+                        "****************  E N D  *********************")
+
                     # resets all GPIO ports used by this program
                     GPIO.cleanup()
                     sys.exit(0)
@@ -299,6 +301,9 @@ try:
                     # Desliga o LED vermelho
                     GPIO.output(LEDpin, False)
 
+                    logging.info(
+                        "**********************************************")
+
                     logging.debug(
                         ">>> turning ON GPIO          : %s", FANpin)
 
@@ -321,6 +326,9 @@ try:
                     GPIO.output(FANpin, False)
                     # Liga o LED vermelho
                     GPIO.output(LEDpin, True)
+
+                    logging.info(
+                        "**********************************************")
 
                     logging.debug(
                         "<<< turning OFF GPIO         : %s", FANpin)
