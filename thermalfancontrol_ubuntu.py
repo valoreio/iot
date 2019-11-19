@@ -16,8 +16,8 @@ The blue led turn on and off through the hardware
 setup using transistors, diodes,
 '''
 # -*- coding: utf-8 -*-
-# Code styled according to pycodestyle
-# Code parsed, checked possible errors according to pyflakes and pylint
+# Code parsed, styled according to pycodestyle
+# Code parsed, checked possible errors according to pylint
 
 __author__ = "Marcos Aurelio Barranco"
 __copyright__ = "Copyright 2016, The MIT License (MIT)"
@@ -40,7 +40,7 @@ if os.geteuid() != 0:
 try:
     # pid is to prevent two codes running
     # at same time at same name space
-    #check-to-see-if-python-script-is-running
+    # check-to-see-if-python-script-is-running
     from pid import PidFile
     with PidFile(piddir="./prevents"):
         import subprocess
@@ -91,39 +91,39 @@ try:
                 '''
                 self.kill_now = True
 
-        killer = GracefulKiller()
+        KILLER = GracefulKiller()
 
         def measure_cpu_temp():
             '''
             Measure CPU temperature
             '''
             try:
-                # formato para o Ubuntu IoT
+                # formato para o Raspbian
                 out = subprocess.Popen(
-                    ['cat', '/sys/class/thermal/thermal_zone0/temp'],
+                    ['vcgencmd', 'measure_temp'],
                     stdout=subprocess.PIPE,
                     stderr=subprocess.STDOUT)
 
                 stdout, stderr = out.communicate()
 
                 if stderr is None:
-                    cpu_temp = int(stdout) / 1000
+                    cpu_temp = re.match(r"temp=(\d+\.?\d*)'C", out)
+                    cpu_temp = cpu_temp.group(1)
                 else:
                     cpu_temp = 32
 
             except Exception:
                 try:
-                    # formato para o Raspbian
+                    # formato para o Ubuntu IoT
                     out = subprocess.Popen(
-                        ['vcgencmd', 'measure_temp'],
+                        ['cat', '/sys/class/thermal/thermal_zone0/temp'],
                         stdout=subprocess.PIPE,
                         stderr=subprocess.STDOUT)
 
                     stdout, stderr = out.communicate()
 
                     if stderr is None:
-                        cpu_temp = re.match(r"temp=(\d+\.?\d*)'C", out)
-                        cpu_temp = cpu_temp.group(1)
+                        cpu_temp = int(stdout) / 1000
                     else:
                         cpu_temp = 32
 
@@ -133,6 +133,8 @@ try:
                     cpu_temp = 32
 
             finally:
+                # return statement in finally block may swallow exception.
+                # Sorry buddy, not in this case. I tested it.
                 return float(cpu_temp)
 
         def select_sqlite_temp():
@@ -247,7 +249,7 @@ try:
         while True:
 
             try:
-                if killer.kill_now:
+                if KILLER.kill_now:
                     logging.info("Exit by Signal Shutdown")
                     logging.info(
                         "****************  E N D  *********************")
@@ -288,9 +290,9 @@ try:
             except Exception as err:
                 humidity, temperature = 32, 32
                 logging.debug(
-                    "Unexpected Exception while reading DHT22 sensor : %s", err)
+                    "Error while reading DHT22 sensor : %s", err)
                 logging.debug(
-                    "humidity and temperature was settled to         : %s", temperature)
+                    "temperature was settled to       : %s", temperature)
 
             # Liga a fan se a temperatura for maior do que a temperatura
             # de controle armazenada no SQLite
@@ -345,26 +347,29 @@ try:
                     logging.debug(
                         "SQLite temperature stored  C : %s", sqlite_temp)
 
-            # O sensor de humidade e temperatura é de baixo custo e pode 'bugar'
-            # A precisão do sensor não é de 100%
+            # O sensor de humidade e temperatura é de baixo custo,
+            # pode 'bugar'. A precisão do sensor não é de 100%
             if temperature is None:
-                # O sensor fez a leitura e deu erro. O valor retornado foi "None",
-                # isso pode acontecer quando diversas consultas são feitas com
-                # intervalo de poucos segundos
+                # O sensor fez a leitura e deu erro.
+                # O valor retornado foi "None", isso pode acontecer
+                # quando diversas consultas são feitas com intervalo
+                # de poucos segundos
                 logging.debug(
-                    ">>>>>>>The temperature read from the sensor is None        : %s", temperature)
+                    ">>>The temperature read from the sensor is None : %s",
+                    temperature)
 
                 try:
                     temperature = select_sqlite_temp()
                     logging.debug(
-                        ">>>>>>>The temperature was set to default stored on SQLite : %s", temperature)
+                        ">>>The temperature was set to SQLite value      : %s",
+                        temperature)
 
                 except Exception as err:
                     temperature = 32
                     logging.debug(
                         "Unexpected Exception SQLite3 temp : %s", err)
                     logging.debug(
-                        ">>>>>>>The temperature was set to : %s", temperature)
+                        ">>>The temperature was set to : %s", temperature)
             else:
                 minimal_temperature = temperature * (50/100)
                 maximal_temperature = temperature * (1+(50/100))
@@ -372,19 +377,22 @@ try:
                 if temperature < minimal_temperature or temperature > maximal_temperature:
                     # O sensor fez a leitura de um valor incorreto
                     logging.debug(
-                        ">>>>>>>The temperature read from the sensor is UNREAL      : %s", temperature)
+                        ">>>Sensor read UNREAL temperature : %s",
+                        temperature)
 
                     try:
                         temperature = select_sqlite_temp()
                         logging.debug(
-                            ">>>>>>>The temperature was set to default stored on SQLite : %s", temperature)
+                            ">>>The temperature was set to : %s",
+                            temperature)
 
                     except Exception as err:
                         temperature = 32
                         logging.debug(
                             "Unexpected Exception SQLite3 temp : %s", err)
                         logging.debug(
-                            ">>>>>>>temp set to NEW one        : %s", temperature)
+                            ">>>>>>>temp set to NEW one        : %s",
+                            temperature)
 
             # A temperatura externa, lida pelo sensor DHT22, controla
             # o tempo do sleep, quanto maior a temperatura externa,
